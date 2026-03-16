@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM — Empleado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container inner">
+      <span class="logo">CRM</span>
+      <span class="badge">Empleado</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- FORM -->
+    <div class="form-card">
+      <h2>Registrar venta</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="emp-name">Tu nombre</label>
+          <input type="text" id="emp-name" placeholder="Ej: Juan García" />
+        </div>
+        <div class="form-group">
+          <label for="client-name">Nombre del cliente</label>
+          <input type="text" id="client-name" placeholder="Ej: Empresa S.A." />
+        </div>
+        <div class="form-group">
+          <label for="tarifa">Tarifa contratada</label>
+          <select id="tarifa">
+            <option value="">— Seleccionar —</option>
+            <option value="A">Tarifa A — 100 €</option>
+            <option value="B">Tarifa B — 150 €</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="mes">Mes</label>
+          <input type="month" id="mes" />
+        </div>
+        <div class="form-group">
+          <label for="estado">Estado al cierre del mes</label>
+          <select id="estado">
+            <option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="notas">Notas (opcional)</label>
+          <input type="text" id="notas" placeholder="Observaciones..." />
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-primary" onclick="submitSale()">Registrar venta</button>
+        <span id="form-status" style="font-size:0.82rem; color: var(--text-muted);"></span>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h2>Mis ventas</h2>
+        <div style="display:flex; gap:8px;">
+          <select id="filter-mes-emp" onchange="renderEmployeeTable()" style="font-size:0.8rem; padding:6px 10px;">
+            <option value="">Todos los meses</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tarifa</th>
+            <th>Monto</th>
+            <th>Mes</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="emp-table-body">
+          <tr><td colspan="6" class="empty">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+  <script>
+    // Set default month to current
+    document.getElementById('mes').value = new Date().toISOString().slice(0, 7);
+    initEmployee();
+  </script>
+</body>
+</html>
