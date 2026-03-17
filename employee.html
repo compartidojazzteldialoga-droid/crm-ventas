@@ -32,8 +32,6 @@
           <label for="tarifa">Tarifa contratada</label>
           <select id="tarifa">
             <option value="">— Seleccionar —</option>
-            <option value="A">Tarifa A — 100 €</option>
-            <option value="B">Tarifa B — 150 €</option>
           </select>
         </div>
         <div class="form-group">
@@ -91,6 +89,7 @@
     document.getElementById('mes').value = new Date().toISOString().slice(0, 7);
     const session = getSession();
     if (session) document.getElementById('user-badge').textContent = session.name;
+    loadTarifas().then(() => populateTarifaSelect());
     initEmployee();
   </script>
 </body>
