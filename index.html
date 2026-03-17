@@ -3,37 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CRM — Inicio</title>
+  <title>CRICRI CORP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <div class="container inner">
-      <span class="logo">CRM</span>
+      <span class="logo">CRICRI CORP</span>
+      <div class="header-right">
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
+      </div>
     </div>
   </header>
 
   <div class="container">
-    <div class="home-wrap">
-      <h1>Seleccioná tu modo</h1>
-      <p>Elegí cómo querés acceder al sistema</p>
-      <div class="mode-cards">
-        <a href="employee.html" class="mode-card">
-          <span class="icon">👤</span>
-          <span class="label">Acceso</span>
-          <span class="title">Empleado</span>
-        </a>
-        <a href="admin.html" class="mode-card">
-          <span class="icon">⚡</span>
-          <span class="label">Acceso</span>
-          <span class="title">Administrador</span>
-        </a>
+    <div class="login-wrap">
+      <div class="login-card">
+        <h2>Iniciar sesión</h2>
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <input type="text" id="username" placeholder="tu usuario" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="actions-row" style="margin-top:24px;">
+          <button class="btn btn-primary btn-full" onclick="doLogin()">Entrar</button>
+        </div>
+        <p id="login-error" style="color:var(--danger); font-size:0.82rem; margin-top:12px; text-align:center; display:none;">
+          Usuario o contraseña incorrectos
+        </p>
       </div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+  <script>
+    applyTheme();
+    // If already logged in, redirect
+    const session = getSession();
+    if (session) {
+      window.location.href = session.role === 'admin' ? 'admin.html' : 'employee.html';
+    }
+
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
 </body>
 </html>
