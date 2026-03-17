@@ -11,17 +11,59 @@
 <body>
   <header>
     <div class="container inner">
-      <span class="logo">CRICRI CORP</span>
+      <div style="display:flex;align-items:center;">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="logo">CRICRI CORP</span>
+      </div>
       <div class="header-right">
         <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
         <button class="btn btn-outline" onclick="exportCSV()" style="font-size:0.75rem; padding:6px 14px;">Exportar CSV</button>
         <button class="btn btn-outline" onclick="loadData()" style="font-size:0.75rem; padding:6px 14px;">↻ Actualizar</button>
-        <a href="users.html" class="btn btn-outline" style="font-size:0.75rem; padding:6px 14px;">👥 Usuarios</a>
         <span class="badge adm">ADM</span>
-        <button class="btn-outline btn" style="font-size:0.75rem; padding:6px 14px;" onclick="doLogout()">Salir</button>
+        <button class="btn btn-outline" style="font-size:0.75rem; padding:6px 14px;" onclick="doLogout()">Salir</button>
       </div>
     </div>
   </header>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">CRICRI CORP</span>
+      <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Usuarios</div>
+      <div id="sidebar-users-list"><div style="color:var(--text-muted);font-size:0.82rem;">Cargando...</div></div>
+      <div class="sidebar-form">
+        <div class="sidebar-section-title" style="margin-top:12px;margin-bottom:8px;">Nuevo usuario</div>
+        <input type="text" id="sb-new-name" placeholder="Nombre completo" />
+        <input type="text" id="sb-new-user" placeholder="Usuario" />
+        <input type="password" id="sb-new-pass" placeholder="Contraseña" />
+        <select id="sb-new-role">
+          <option value="employee">Empleado</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button class="btn btn-primary" onclick="sidebarCreateUser()">Crear usuario</button>
+      </div>
+    </div>
+
+    <!-- TARIFAS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Tarifas</div>
+      <div id="sidebar-tarifas-list"></div>
+      <div class="sidebar-form">
+        <div class="sidebar-section-title" style="margin-top:12px;margin-bottom:8px;">Nueva tarifa</div>
+        <input type="text" id="new-tarifa-nombre" placeholder="Nombre (ej: Tarifa C)" />
+        <input type="number" id="new-tarifa-monto" placeholder="Monto en €" />
+        <button class="btn btn-primary" onclick="addTarifa()">Agregar tarifa</button>
+      </div>
+    </div>
+  </div>
 
   <div class="container">
 
