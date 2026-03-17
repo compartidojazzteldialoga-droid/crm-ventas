@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRICRI CORP — Campañas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container inner">
+      <span class="logo">CRICRI CORP</span>
+      <div class="header-right">
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
+        <a href="admin.html" class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;">← Volver</a>
+        <span class="badge adm">ADM</span>
+        <button class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;" onclick="doLogout()">Salir</button>
+      </div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="form-card">
+      <h2>Nueva campaña</h2>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="new-camp-nombre">Nombre de la campaña</label>
+          <input type="text" id="new-camp-nombre" placeholder="Ej: Movistar Q1" />
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-primary" onclick="addCampana()">Crear campaña</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><h2>Campañas</h2></div>
+      <table>
+        <thead><tr><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="campanas-table-body"><tr><td colspan="3" class="empty">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+  <script>
+    applyTheme();
+    requireAuth('admin');
+    renderCampanasTable();
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRICRI CORP — Permisos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container inner">
+      <span class="logo">CRICRI CORP</span>
+      <div class="header-right">
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
+        <a href="admin.html" class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;">← Volver</a>
+        <span class="badge adm">ADM</span>
+        <button class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;" onclick="doLogout()">Salir</button>
+      </div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="table-wrap" style="overflow-x:auto;">
+      <div class="table-header"><h2>Permisos por empleado</h2></div>
+      <table>
+        <thead id="permisos-thead"><tr><th colspan="6" class="empty">Cargando...</th></tr></thead>
+        <tbody id="permisos-table-body"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+  <script>
+    applyTheme();
+    requireAuth('admin');
+    renderPermisosTable();
+  </script>
+</body>
+</html>
