@@ -15,12 +15,13 @@
 }
 
 body.light {
-  --bg: #f4f4f0;
+  --bg: #f0f0ec;
   --surface: #ffffff;
-  --surface2: #f0f0ec;
-  --border: #e0e0d8;
-  --text: #1a1a1a;
-  --text-muted: #888;
+  --surface2: #e8e8e4;
+  --border: #d0d0c8;
+  --text: #111111;
+  --text-muted: #555555;
+  --accent: #a07830;
 }
 
 body {
