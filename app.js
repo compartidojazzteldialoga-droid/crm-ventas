@@ -4,8 +4,9 @@
 const JSONBIN_KEY  = '$2a$10$pbwFfdMJ74BhV1FBAY6XEOX/DDUfx4El.nGaMcbDVWYZjJ7I0ShA6';
 const BIN_USERS    = '69b94bd3c3097a1dd53261ca';
 const BIN_SALES    = '69b94ba3c3097a1dd53260da';
-const SCRIPT_URL   = 'YOUR_APPS_SCRIPT_URL_HERE'; // solo para exportar a Sheets
-const TARIFAS      = { A: 100, B: 150 };
+const BIN_TARIFAS  = '69b955a2c3097a1dd5328feb';
+const SCRIPT_URL   = 'YOUR_APPS_SCRIPT_URL_HERE';
+let TARIFAS        = { A: 100, B: 150 }; // se sobreescribe desde JSONBin
 
 const API = 'https://api.jsonbin.io/v3/b';
 const HEADERS = {
@@ -221,18 +222,22 @@ async function saveSales(sales) {
 async function submitSale() {
   const session = getSession();
   const client  = document.getElementById('client-name').value.trim();
-  const tarifa  = document.getElementById('tarifa').value;
+  const tarifaId = document.getElementById('tarifa').value;
   const mes     = document.getElementById('mes').value;
   const estado  = document.getElementById('estado').value;
   const notas   = document.getElementById('notas').value.trim();
   const status  = document.getElementById('form-status');
 
-  if (!client || !tarifa || !mes) { showToast('Completá todos los campos obligatorios', 'error'); return; }
+  if (!client || !tarifaId || !mes) { showToast('Completá todos los campos obligatorios', 'error'); return; }
+
+  const tarifas = await getTarifas();
+  const tarifa  = tarifas.find(t => t.id === tarifaId);
+  if (!tarifa) { showToast('Tarifa no válida', 'error'); return; }
 
   const sale = {
     id: Date.now().toString(),
     empName: session.name, empUsername: session.username,
-    client, tarifa, monto: TARIFAS[tarifa], mes, estado, notas,
+    client, tarifa: tarifa.nombre, tarifaId, monto: tarifa.monto, mes, estado, notas,
     createdAt: new Date().toISOString(),
   };
 
@@ -287,7 +292,7 @@ function renderEmployeeTable(sales) {
   if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay ventas registradas aún</td></tr>'; return; }
   tbody.innerHTML = filtered.map(s => `
     <tr>
-      <td>${s.client}</td><td>Tarifa ${s.tarifa}</td><td>${s.monto} €</td>
+      <td>${s.client}</td><td>${s.tarifa}</td><td>${s.monto} €</td>
       <td>${formatMes(s.mes)}</td><td><span class="pill ${s.estado}">${s.estado}</span></td>
       <td><button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;"
         onclick="toggleStatus('${s.id}','${s.estado}','emp')">
@@ -356,7 +361,7 @@ function renderAdminTable(sales) {
   if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay ventas que coincidan</td></tr>'; return; }
   tbody.innerHTML = filtered.map(s => `
     <tr>
-      <td>${s.empName}</td><td>${s.client}</td><td>Tarifa ${s.tarifa}</td><td>${s.monto} €</td>
+      <td>${s.empName}</td><td>${s.client}</td><td>${s.tarifa}</td><td>${s.monto} €</td>
       <td>${formatMes(s.mes)}</td><td><span class="pill ${s.estado}">${s.estado}</span></td>
       <td style="color:var(--text-muted);font-size:0.82rem;">${s.notas||'—'}</td>
       <td style="display:flex;gap:6px;">
@@ -428,4 +433,167 @@ function showToast(msg, type = 'success') {
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen  = sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('show', !isOpen);
+  if (!isOpen) {
+    renderSidebarUsers();
+    renderSidebarTarifas();
+  }
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ============================================================
+// TARIFAS
+// ============================================================
+async function getTarifas() {
+  const data = await readBin(BIN_TARIFAS);
+  return data.tarifas || [];
+}
+
+async function saveTarifas(tarifas) {
+  await writeBin(BIN_TARIFAS, { tarifas });
+}
+
+async function loadTarifas() {
+  const tarifas = await getTarifas();
+  // Update global TARIFAS map
+  TARIFAS = {};
+  tarifas.forEach(t => { TARIFAS[t.id] = t.monto; });
+  return tarifas;
+}
+
+async function populateTarifaSelect() {
+  const tarifas = await getTarifas();
+  const sel = document.getElementById('tarifa');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    tarifas.map(t => `<option value="${t.id}">${t.nombre} — ${t.monto} €</option>`).join('');
+}
+
+async function renderSidebarTarifas() {
+  const tarifas = await getTarifas();
+  const container = document.getElementById('sidebar-tarifas-list');
+  if (!container) return;
+  container.innerHTML = tarifas.map(t => `
+    <div class="sidebar-tarifa-row" id="trow-${t.id}">
+      <div style="display:flex;gap:8px;align-items:center;flex:1;">
+        <input type="text" value="${t.nombre}" id="tname-${t.id}" style="flex:1;font-size:0.85rem;padding:6px 10px;" />
+        <input type="number" value="${t.monto}" id="tmonto-${t.id}" style="width:80px;font-size:0.85rem;padding:6px 10px;" />
+        <span style="color:var(--text-muted);font-size:0.8rem;">€</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="btn btn-primary" style="font-size:0.72rem;padding:4px 10px;" onclick="saveTarifa('${t.id}')">Guardar</button>
+        <button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteTarifa('${t.id}')">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveTarifa(id) {
+  const nombre = document.getElementById(`tname-${id}`).value.trim();
+  const monto  = parseFloat(document.getElementById(`tmonto-${id}`).value);
+  if (!nombre || isNaN(monto)) { showToast('Datos inválidos', 'error'); return; }
+  const tarifas = await getTarifas();
+  const idx = tarifas.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tarifas[idx] = { ...tarifas[idx], nombre, monto };
+  await saveTarifas(tarifas);
+  showToast('Tarifa actualizada');
+  await loadTarifas();
+}
+
+async function deleteTarifa(id) {
+  if (!confirm('¿Eliminar esta tarifa?')) return;
+  const tarifas = (await getTarifas()).filter(t => t.id !== id);
+  await saveTarifas(tarifas);
+  showToast('Tarifa eliminada');
+  renderSidebarTarifas();
+  await loadTarifas();
+}
+
+async function addTarifa() {
+  const nombre = document.getElementById('new-tarifa-nombre').value.trim();
+  const monto  = parseFloat(document.getElementById('new-tarifa-monto').value);
+  if (!nombre || isNaN(monto)) { showToast('Completá nombre y monto', 'error'); return; }
+  const tarifas = await getTarifas();
+  tarifas.push({ id: Date.now().toString(), nombre, monto });
+  await saveTarifas(tarifas);
+  document.getElementById('new-tarifa-nombre').value = '';
+  document.getElementById('new-tarifa-monto').value = '';
+  showToast('Tarifa agregada');
+  renderSidebarTarifas();
+  await loadTarifas();
+}
+
+// ============================================================
+// SIDEBAR USERS (mini version)
+// ============================================================
+async function renderSidebarUsers() {
+  const tbody = document.getElementById('sidebar-users-list');
+  if (!tbody) return;
+  tbody.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;">Cargando...</div>';
+  const users = await getUsers();
+  tbody.innerHTML = users.map(u => `
+    <div class="sidebar-user-row">
+      <div>
+        <div style="font-size:0.88rem;">${u.name}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">${u.username} · <span class="pill ${u.role==='admin'?'activa':'inactiva'}" style="font-size:0.65rem;padding:2px 7px;">${u.role}</span></div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline" style="font-size:0.68rem;padding:3px 8px;" onclick="sidebarEditUser('${u.id}')">Editar</button>
+        ${u.id!=='admin-default'?`<button class="btn btn-danger" style="font-size:0.68rem;padding:3px 8px;" onclick="deleteUser('${u.id}')">✕</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function sidebarCreateUser() {
+  const name     = document.getElementById('sb-new-name').value.trim();
+  const username = document.getElementById('sb-new-user').value.trim();
+  const password = document.getElementById('sb-new-pass').value.trim();
+  const role     = document.getElementById('sb-new-role').value;
+  if (!name || !username || !password) { showToast('Completá todos los campos', 'error'); return; }
+  const users = await getUsers();
+  if (users.find(u => u.username === username)) { showToast('Ese usuario ya existe', 'error'); return; }
+  users.push({ id: Date.now().toString(), name, username, password, role });
+  await saveUsers(users);
+  document.getElementById('sb-new-name').value = '';
+  document.getElementById('sb-new-user').value = '';
+  document.getElementById('sb-new-pass').value = '';
+  showToast(`Usuario "${username}" creado`);
+  renderSidebarUsers();
+}
+
+async function sidebarEditUser(id) {
+  const users = await getUsers();
+  const u = users.find(x => x.id === id);
+  if (!u) return;
+  const newName = prompt('Nombre completo:', u.name);
+  if (newName === null) return;
+  const newPass = prompt('Nueva contraseña (dejá vacío para no cambiar):', '');
+  const newRole = prompt('Rol (admin / employee):', u.role);
+  const updated = {
+    ...u,
+    name: newName || u.name,
+    password: newPass ? newPass : u.password,
+    role: (newRole === 'admin' || newRole === 'employee') ? newRole : u.role
+  };
+  const idx = users.findIndex(x => x.id === id);
+  users[idx] = updated;
+  await saveUsers(users);
+  showToast('Usuario actualizado');
+  renderSidebarUsers();
 }
