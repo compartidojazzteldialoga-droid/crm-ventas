@@ -245,3 +245,31 @@ tr:hover td { background: var(--surface2); }
   border-top: 1px solid var(--border);
   padding: 8px 0;
 }
+
+/* ESTADOS */
+.pill.activo        { background: rgba(76,175,125,0.15);  color: #4caf7d; border: 1px solid rgba(76,175,125,0.3); }
+.pill.parcial,
+.pill.activo_parcial{ background: rgba(201,168,76,0.15);  color: #c9a84c; border: 1px solid rgba(201,168,76,0.3); }
+.pill.en_curso      { background: rgba(100,149,237,0.15); color: #6495ed; border: 1px solid rgba(100,149,237,0.3); }
+.pill.cancelado     { background: rgba(224,92,92,0.15);   color: #e05c5c; border: 1px solid rgba(224,92,92,0.3); }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+}
+.modal-box h2 { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; }
