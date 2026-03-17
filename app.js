@@ -1,8 +1,35 @@
 // ============================================================
 // CONFIG
 // ============================================================
-const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
-const TARIFAS = { A: 100, B: 150 };
+const JSONBIN_KEY  = '$2a$10$pbwFfdMJ74BhV1FBAY6XEOX/DDUfx4El.nGaMcbDVWYZjJ7I0ShA6';
+const BIN_USERS    = '69b94bd3c3097a1dd53261ca';
+const BIN_SALES    = '69b94ba3c3097a1dd53260da';
+const SCRIPT_URL   = 'YOUR_APPS_SCRIPT_URL_HERE'; // solo para exportar a Sheets
+const TARIFAS      = { A: 100, B: 150 };
+
+const API = 'https://api.jsonbin.io/v3/b';
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Master-Key': JSONBIN_KEY,
+  'X-Bin-Versioning': 'false'
+};
+
+// ============================================================
+// JSONBIN HELPERS
+// ============================================================
+async function readBin(binId) {
+  const res = await fetch(`${API}/${binId}/latest`, { headers: HEADERS });
+  const json = await res.json();
+  return json.record;
+}
+
+async function writeBin(binId, data) {
+  await fetch(`${API}/${binId}`, {
+    method: 'PUT',
+    headers: HEADERS,
+    body: JSON.stringify(data)
+  });
+}
 
 // ============================================================
 // THEME
@@ -38,73 +65,48 @@ function doLogout() { sessionStorage.removeItem('crm_session'); window.location.
 async function doLogin() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
-  const errEl = document.getElementById('login-error');
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.querySelector('.btn-primary');
   errEl.style.display = 'none';
 
   if (!username || !password) { errEl.style.display = 'block'; errEl.textContent = 'Completá los campos'; return; }
 
-  showToast('Verificando...', 'success');
-  const users = await fetchUsers();
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
 
-  // Always ensure default admin exists
-  const allUsers = ensureDefaultAdmin(users);
-  const user = allUsers.find(u => u.username === username && u.password === password);
-
-  if (!user) { errEl.style.display = 'block'; errEl.textContent = 'Usuario o contraseña incorrectos'; return; }
-
-  setSession({ username: user.username, name: user.name, role: user.role });
-  window.location.href = user.role === 'admin' ? 'admin.html' : 'employee.html';
-}
-
-// ============================================================
-// SHEETS FETCH (GET)
-// ============================================================
-async function fetchFromSheets(type) {
-  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return null;
   try {
-    const res = await fetch(`${SCRIPT_URL}?type=${type}`);
-    return await res.json();
-  } catch (e) { console.warn('Fetch error:', e); return null; }
-}
+    const data  = await readBin(BIN_USERS);
+    const users = data.users || [];
+    const user  = users.find(u => u.username === username && u.password === password);
 
-async function fetchUsers() {
-  const remote = await fetchFromSheets('users');
-  if (remote && remote.length > 0) return remote;
-  // fallback to localStorage
-  return JSON.parse(localStorage.getItem('crm_users') || '[]');
-}
+    if (!user) {
+      errEl.style.display = 'block';
+      errEl.textContent = 'Usuario o contraseña incorrectos';
+      btn.textContent = 'Entrar'; btn.disabled = false;
+      return;
+    }
 
-async function fetchSales() {
-  const remote = await fetchFromSheets('sales');
-  if (remote && remote.length > 0) {
-    localStorage.setItem('crm_sales', JSON.stringify(remote));
-    return remote;
+    setSession({ username: user.username, name: user.name, role: user.role });
+    window.location.href = user.role === 'admin' ? 'admin.html' : 'employee.html';
+  } catch (e) {
+    errEl.style.display = 'block';
+    errEl.textContent = 'Error de conexión, intentá de nuevo';
+    btn.textContent = 'Entrar'; btn.disabled = false;
   }
-  return JSON.parse(localStorage.getItem('crm_sales') || '[]');
-}
-
-function ensureDefaultAdmin(users) {
-  if (!users.find(u => u.username === 'admin')) {
-    users.unshift({ id: 'admin-default', name: 'Administrador', username: 'admin', password: 'admin123', role: 'admin' });
-  }
-  return users;
 }
 
 // ============================================================
-// SHEETS POST (WRITE)
+// USERS
 // ============================================================
-async function sheetsPost(params) {
-  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
-  try {
-    const form = new FormData();
-    form.append('payload', JSON.stringify(params));
-    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: form });
-  } catch (e) { console.warn('Sheets write error:', e); }
+async function getUsers() {
+  const data = await readBin(BIN_USERS);
+  return data.users || [];
 }
 
-// ============================================================
-// USERS MANAGEMENT
-// ============================================================
+async function saveUsers(users) {
+  await writeBin(BIN_USERS, { users });
+}
+
 async function createUser() {
   const name     = document.getElementById('new-name').value.trim();
   const username = document.getElementById('new-user').value.trim();
@@ -113,39 +115,91 @@ async function createUser() {
 
   if (!name || !username || !password) { showToast('Completá todos los campos', 'error'); return; }
 
-  const users = await fetchUsers();
+  const users = await getUsers();
   if (users.find(u => u.username === username)) { showToast('Ese usuario ya existe', 'error'); return; }
 
-  const newUser = { id: Date.now().toString(), name, username, password, role };
-  await sheetsPost({ action: 'addUser', user: newUser });
+  showToast('Creando usuario...');
+  users.push({ id: Date.now().toString(), name, username, password, role });
+  await saveUsers(users);
 
   document.getElementById('new-name').value = '';
   document.getElementById('new-user').value = '';
   document.getElementById('new-pass').value = '';
 
   showToast(`Usuario "${username}" creado`);
-  await renderUsersTable();
+  renderUsersTable();
 }
 
 async function deleteUser(id) {
   if (!confirm('¿Eliminar este usuario?')) return;
-  await sheetsPost({ action: 'deleteUser', id });
+  const users = (await getUsers()).filter(u => u.id !== id);
+  await saveUsers(users);
   showToast('Usuario eliminado');
-  await renderUsersTable();
+  renderUsersTable();
+}
+
+async function startEditUser(id) {
+  const users = await getUsers();
+  const u = users.find(x => x.id === id);
+  if (!u) return;
+
+  document.getElementById('new-name').value = u.name;
+  document.getElementById('new-user').value = u.username;
+  document.getElementById('new-pass').value = u.password;
+  document.getElementById('new-role').value = u.role;
+
+  const btn = document.getElementById('save-user-btn');
+  btn.textContent = 'Guardar cambios';
+  btn.onclick = () => updateUser(id);
+  document.getElementById('new-name').focus();
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+}
+
+function cancelEdit() {
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-user').value = '';
+  document.getElementById('new-pass').value = '';
+  document.getElementById('new-role').value = 'employee';
+  const btn = document.getElementById('save-user-btn');
+  btn.textContent = 'Crear usuario';
+  btn.onclick = createUser;
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+async function updateUser(id) {
+  const name     = document.getElementById('new-name').value.trim();
+  const username = document.getElementById('new-user').value.trim();
+  const password = document.getElementById('new-pass').value.trim();
+  const role     = document.getElementById('new-role').value;
+
+  if (!name || !username || !password) { showToast('Completá todos los campos', 'error'); return; }
+
+  const users = await getUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx === -1) return;
+
+  users[idx] = { ...users[idx], name, username, password, role };
+  await saveUsers(users);
+  showToast('Usuario actualizado');
+  cancelEdit();
+  renderUsersTable();
 }
 
 async function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" class="empty">Cargando...</td></tr>';
-  const users = await fetchUsers();
-  const all = ensureDefaultAdmin(users);
-  tbody.innerHTML = all.map(u => `
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Cargando...</td></tr>';
+  const users = await getUsers();
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin usuarios</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => `
     <tr>
       <td>${u.name}</td>
       <td>${u.username}</td>
       <td><span class="pill ${u.role === 'admin' ? 'activa' : 'inactiva'}">${u.role}</span></td>
-      <td>${u.id !== 'admin-default' ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">Eliminar</button>` : '—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="startEditUser('${u.id}')">Editar</button>
+        ${u.id !== 'admin-default' ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">Eliminar</button>` : ''}
+      </td>
     </tr>
   `).join('');
 }
@@ -153,7 +207,16 @@ async function renderUsersTable() {
 // ============================================================
 // SALES
 // ============================================================
-function getSalesLocal() { return JSON.parse(localStorage.getItem('crm_sales') || '[]'); }
+async function getSales() {
+  const data = await readBin(BIN_SALES);
+  return data.sales || [];
+}
+
+async function saveSales(sales) {
+  await writeBin(BIN_SALES, { sales });
+  // Sync to Google Sheets
+  syncToSheets(sales);
+}
 
 async function submitSale() {
   const session = getSession();
@@ -174,10 +237,9 @@ async function submitSale() {
   };
 
   status.textContent = 'Guardando...';
-  const sales = getSalesLocal();
+  const sales = await getSales();
   sales.push(sale);
-  localStorage.setItem('crm_sales', JSON.stringify(sales));
-  await sheetsPost({ action: 'add', sale });
+  await saveSales(sales);
 
   document.getElementById('client-name').value = '';
   document.getElementById('notas').value = '';
@@ -186,31 +248,49 @@ async function submitSale() {
   status.textContent = '';
 
   showToast('Venta registrada');
-  populateMonthFilter('filter-mes-emp', renderEmployeeTable);
-  renderEmployeeTable();
+  await initEmployee();
+}
+
+async function toggleStatus(id, current, mode) {
+  const next = current === 'activa' ? 'inactiva' : 'activa';
+  const sales = await getSales();
+  const updated = sales.map(s => s.id === id ? { ...s, estado: next } : s);
+  await saveSales(updated);
+  showToast(`Venta marcada como ${next}`);
+  if (mode === 'emp') await initEmployee(); else await loadData();
+}
+
+async function deleteSale(id) {
+  if (!confirm('¿Eliminar esta venta?')) return;
+  const sales = (await getSales()).filter(s => s.id !== id);
+  await saveSales(sales);
+  showToast('Venta eliminada');
+  await loadData();
 }
 
 // ============================================================
 // EMPLOYEE
 // ============================================================
-function initEmployee() {
-  populateMonthFilter('filter-mes-emp', renderEmployeeTable);
-  renderEmployeeTable();
+async function initEmployee() {
+  const sales = await getSales();
+  const session = getSession();
+  const mySales = sales.filter(s => s.empUsername === session?.username);
+  populateMonthFilter('filter-mes-emp', mySales, () => renderEmployeeTable(mySales));
+  renderEmployeeTable(mySales);
 }
 
-function renderEmployeeTable() {
-  const session = getSession();
+function renderEmployeeTable(sales) {
+  const session   = getSession();
   const filterMes = document.getElementById('filter-mes-emp')?.value || '';
-  const sales = getSalesLocal().filter(s =>
-    s.empUsername === session?.username && (!filterMes || s.mes === filterMes)
-  );
-  const tbody = document.getElementById('emp-table-body');
-  if (!sales.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay ventas registradas aún</td></tr>'; return; }
-  tbody.innerHTML = sales.map(s => `
+  const filtered  = (sales || []).filter(s => !filterMes || s.mes === filterMes);
+  const tbody     = document.getElementById('emp-table-body');
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay ventas registradas aún</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(s => `
     <tr>
       <td>${s.client}</td><td>Tarifa ${s.tarifa}</td><td>${s.monto} €</td>
       <td>${formatMes(s.mes)}</td><td><span class="pill ${s.estado}">${s.estado}</span></td>
-      <td><button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="toggleStatus('${s.id}','${s.estado}','emp')">
+      <td><button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;"
+        onclick="toggleStatus('${s.id}','${s.estado}','emp')">
         ${s.estado === 'activa' ? 'Marcar inactiva' : 'Marcar activa'}
       </button></td>
     </tr>
@@ -226,18 +306,17 @@ async function initAdmin() {
 }
 
 async function loadData() {
-  const sales = await fetchSales();
+  const sales = await getSales();
   renderAdminStats(sales);
   renderAdminTable(sales);
   renderEmpBreakdown(sales);
-  await renderUsersTable();
-  populateMonthFilter('filter-mes', () => loadData());
+  populateMonthFilter('filter-mes', sales, () => loadData());
   populateEmpFilter(sales);
 }
 
 function renderAdminStats(sales) {
-  const fm = document.getElementById('filter-mes')?.value || '';
-  const s = sales.filter(x => !fm || x.mes === fm);
+  const fm  = document.getElementById('filter-mes')?.value || '';
+  const s   = sales.filter(x => !fm || x.mes === fm);
   const act = s.filter(x => x.estado === 'activa');
   const pot = s.reduce((a, x) => a + x.monto, 0);
   const real = act.reduce((a, x) => a + x.monto, 0);
@@ -259,6 +338,7 @@ function renderEmpBreakdown(sales) {
   const emps = {};
   sales.forEach(s => { if (!emps[s.empName]) emps[s.empName] = []; emps[s.empName].push(s); });
   const tbody = document.getElementById('emp-breakdown-body');
+  if (!tbody) return;
   const entries = Object.entries(emps);
   if (!entries.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos</td></tr>'; return; }
   tbody.innerHTML = entries.map(([name, ss]) => {
@@ -290,28 +370,10 @@ function renderAdminTable(sales) {
 }
 
 // ============================================================
-// SHARED ACTIONS
+// EXPORT CSV + SHEETS SYNC
 // ============================================================
-async function toggleStatus(id, current, mode) {
-  const next = current === 'activa' ? 'inactiva' : 'activa';
-  const sales = getSalesLocal().map(s => s.id === id ? { ...s, estado: next } : s);
-  localStorage.setItem('crm_sales', JSON.stringify(sales));
-  await sheetsPost({ action: 'updateStatus', id, estado: next });
-  showToast(`Venta marcada como ${next}`);
-  if (mode === 'emp') renderEmployeeTable(); else await loadData();
-}
-
-async function deleteSale(id) {
-  if (!confirm('¿Eliminar esta venta?')) return;
-  const sales = getSalesLocal().filter(s => s.id !== id);
-  localStorage.setItem('crm_sales', JSON.stringify(sales));
-  await sheetsPost({ action: 'delete', id });
-  showToast('Venta eliminada');
-  await loadData();
-}
-
-function exportCSV() {
-  const sales = getSalesLocal();
+async function exportCSV() {
+  const sales = await getSales();
   if (!sales.length) { showToast('No hay datos para exportar', 'error'); return; }
   const headers = ['ID','Empleado','Cliente','Tarifa','Monto (€)','Mes','Estado','Notas','Fecha'];
   const rows = sales.map(s => [s.id,s.empName,s.client,`Tarifa ${s.tarifa}`,s.monto,s.mes,s.estado,s.notas||'',s.createdAt]);
@@ -321,6 +383,15 @@ function exportCSV() {
   a.download = `ventas_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('CSV exportado');
+}
+
+async function syncToSheets(sales) {
+  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+  try {
+    const form = new FormData();
+    form.append('payload', JSON.stringify({ action: 'syncAll', sales }));
+    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: form });
+  } catch (e) { console.warn('Sheets sync:', e); }
 }
 
 // ============================================================
@@ -334,25 +405,26 @@ function formatMes(mes) {
   return `${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(m)-1]} ${y}`;
 }
 
-function populateMonthFilter(filterId, cb) {
-  const meses = [...new Set(getSalesLocal().map(s => s.mes))].sort().reverse();
+function populateMonthFilter(filterId, sales, cb) {
+  const meses = [...new Set((sales||[]).map(s => s.mes))].sort().reverse();
   const el = document.getElementById(filterId);
   if (!el) return;
   const cur = el.value;
   el.innerHTML = '<option value="">Todos los meses</option>' + meses.map(m=>`<option value="${m}" ${m===cur?'selected':''}>${formatMes(m)}</option>`).join('');
+  if (cb) el.onchange = cb;
 }
 
 function populateEmpFilter(sales) {
-  const emps = [...new Set((sales||getSalesLocal()).map(s => s.empName))].sort();
+  const emps = [...new Set((sales||[]).map(s => s.empName))].sort();
   const el = document.getElementById('filter-emp');
   if (!el) return;
   const cur = el.value;
   el.innerHTML = '<option value="">Todos los empleados</option>' + emps.map(e=>`<option value="${e}" ${e===cur?'selected':''}>${e}</option>`).join('');
 }
 
-// Toast
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => { t.className = 'toast'; }, 3000);
