@@ -3,29 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CRM — Empleado</title>
+  <title>CRICRI CORP — Empleado</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <div class="container inner">
-      <span class="logo">CRM</span>
-      <span class="badge">Empleado</span>
+      <span class="logo">CRICRI CORP</span>
+      <div class="header-right">
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
+        <span class="badge" id="user-badge">—</span>
+        <button class="btn-outline btn" style="font-size:0.75rem; padding:6px 14px;" onclick="doLogout()">Salir</button>
+      </div>
     </div>
   </header>
 
   <div class="container">
-
-    <!-- FORM -->
     <div class="form-card">
       <h2>Registrar venta</h2>
       <div class="form-grid">
-        <div class="form-group">
-          <label for="emp-name">Tu nombre</label>
-          <input type="text" id="emp-name" placeholder="Ej: Juan García" />
-        </div>
         <div class="form-group">
           <label for="client-name">Nombre del cliente</label>
           <input type="text" id="client-name" placeholder="Ej: Empresa S.A." />
@@ -49,7 +47,7 @@
             <option value="inactiva">Inactiva</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group full">
           <label for="notas">Notas (opcional)</label>
           <input type="text" id="notas" placeholder="Observaciones..." />
         </div>
@@ -60,15 +58,12 @@
       </div>
     </div>
 
-    <!-- TABLE -->
     <div class="table-wrap">
       <div class="table-header">
         <h2>Mis ventas</h2>
-        <div style="display:flex; gap:8px;">
-          <select id="filter-mes-emp" onchange="renderEmployeeTable()" style="font-size:0.8rem; padding:6px 10px;">
-            <option value="">Todos los meses</option>
-          </select>
-        </div>
+        <select id="filter-mes-emp" onchange="renderEmployeeTable()" style="font-size:0.8rem; padding:6px 10px;">
+          <option value="">Todos los meses</option>
+        </select>
       </div>
       <table>
         <thead>
@@ -82,18 +77,20 @@
           </tr>
         </thead>
         <tbody id="emp-table-body">
-          <tr><td colspan="6" class="empty">Cargando datos...</td></tr>
+          <tr><td colspan="6" class="empty">Sin ventas registradas</td></tr>
         </tbody>
       </table>
     </div>
-
   </div>
 
   <div class="toast" id="toast"></div>
   <script src="app.js"></script>
   <script>
-    // Set default month to current
+    applyTheme();
+    requireAuth('employee');
     document.getElementById('mes').value = new Date().toISOString().slice(0, 7);
+    const session = getSession();
+    if (session) document.getElementById('user-badge').textContent = session.name;
     initEmployee();
   </script>
 </body>
