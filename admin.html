@@ -19,15 +19,13 @@
       </div>
       <div class="header-right">
         <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
-        <button class="btn btn-outline" onclick="exportCSV()" style="font-size:0.75rem; padding:6px 14px;">Exportar CSV</button>
-        <button class="btn btn-outline" onclick="loadData()" style="font-size:0.75rem; padding:6px 14px;">↻ Actualizar</button>
+        <button class="btn btn-outline" onclick="exportCSV()" style="font-size:0.75rem;padding:6px 14px;">Exportar CSV</button>
+        <button class="btn btn-outline" onclick="loadData()" style="font-size:0.75rem;padding:6px 14px;">↻ Actualizar</button>
         <span class="badge adm">ADM</span>
-        <button class="btn btn-outline" style="font-size:0.75rem; padding:6px 14px;" onclick="doLogout()">Salir</button>
       </div>
     </div>
   </header>
 
-  <!-- SIDEBAR -->
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -35,102 +33,55 @@
       <button class="sidebar-close" onclick="closeSidebar()">✕</button>
     </div>
     <nav class="sidebar-nav">
-      <a href="users.html" class="sidebar-nav-item">
-        <span class="sidebar-nav-icon">👥</span>
-        Gestión de usuarios
-      </a>
-      <a href="tarifas.html" class="sidebar-nav-item">
-        <span class="sidebar-nav-icon">💰</span>
-        Gestión de tarifas
-      </a>
+      <a href="users.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">👥</span>Gestión de usuarios</a>
+      <a href="permisos.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">🔐</span>Permisos</a>
+      <a href="campanas.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">📢</span>Campañas</a>
     </nav>
     <div class="sidebar-footer">
-      <button class="sidebar-nav-item danger" onclick="doLogout()">
-        <span class="sidebar-nav-icon">→</span>
-        Cerrar sesión
-      </button>
+      <button class="sidebar-nav-item danger" onclick="doLogout()"><span class="sidebar-nav-icon">→</span>Cerrar sesión</button>
     </div>
   </div>
 
   <div class="container">
-
-    <!-- STATS -->
     <p class="section-title">Resumen general</p>
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total potencial</div>
-        <div class="stat-value" id="stat-potencial">—</div>
-        <div class="stat-sub">Si todas las ventas estuvieran activas</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total real</div>
-        <div class="stat-value" id="stat-real">—</div>
-        <div class="stat-sub">Solo ventas activas</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ventas activas</div>
-        <div class="stat-value" id="stat-activas">—</div>
-        <div class="stat-sub" id="stat-activas-sub">de — registradas</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ingresos perdidos</div>
-        <div class="stat-value" id="stat-perdidos" style="color: var(--danger);">—</div>
-        <div class="stat-sub">Ventas inactivas</div>
-      </div>
+      <div class="stat-card"><div class="stat-label">Total potencial</div><div class="stat-value" id="stat-potencial">—</div><div class="stat-sub">Si ninguna venta estuviera cancelada</div></div>
+      <div class="stat-card"><div class="stat-label">Total real</div><div class="stat-value" id="stat-real">—</div><div class="stat-sub">Ventas no canceladas</div></div>
+      <div class="stat-card"><div class="stat-label">Ganancia distribuidor</div><div class="stat-value" id="stat-gan-dist">—</div><div class="stat-sub">Tu ganancia real</div></div>
+      <div class="stat-card"><div class="stat-label">Ganancia colaboradores</div><div class="stat-value" id="stat-gan-colab">—</div><div class="stat-sub">Total colaboradores</div></div>
+      <div class="stat-card"><div class="stat-label">Ventas activas</div><div class="stat-value" id="stat-activas">—</div><div class="stat-sub" id="stat-activas-sub">de — registradas</div></div>
+      <div class="stat-card"><div class="stat-label">Ingresos perdidos</div><div class="stat-value" id="stat-perdidos" style="color:var(--danger);">—</div><div class="stat-sub">Ventas canceladas</div></div>
     </div>
 
-    <!-- BY TARIFA -->
-    <p class="section-title">Por tarifa</p>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Tarifa A — 100 €</div>
-        <div class="stat-value" id="stat-ta-real">—</div>
-        <div class="stat-sub" id="stat-ta-sub">— activas / — total</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Tarifa B — 150 €</div>
-        <div class="stat-value" id="stat-tb-real">—</div>
-        <div class="stat-sub" id="stat-tb-sub">— activas / — total</div>
-      </div>
-    </div>
-
-    <!-- BY EMPLOYEE -->
     <p class="section-title">Por empleado</p>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr><th>Empleado</th><th>Ventas totales</th><th>Activas</th><th>Potencial</th><th>Real</th></tr>
-        </thead>
-        <tbody id="emp-breakdown-body">
-          <tr><td colspan="5" class="empty">Cargando...</td></tr>
-        </tbody>
+        <thead><tr><th>Empleado</th><th>Total ventas</th><th>Activas</th><th>Potencial dist.</th><th>Real dist.</th><th>Real colab.</th></tr></thead>
+        <tbody id="emp-breakdown-body"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
       </table>
     </div>
 
-    <!-- ALL SALES -->
     <div class="table-wrap">
       <div class="table-header">
         <h2>Todas las ventas</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="filter-mes" onchange="renderAdminTable()" style="font-size:0.8rem; padding:6px 10px;"><option value="">Todos los meses</option></select>
-          <select id="filter-emp" onchange="renderAdminTable()" style="font-size:0.8rem; padding:6px 10px;"><option value="">Todos los empleados</option></select>
-          <select id="filter-estado" onchange="renderAdminTable()" style="font-size:0.8rem; padding:6px 10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="filter-mes" onchange="loadData()" style="font-size:0.8rem;padding:6px 10px;"><option value="">Todos los meses</option></select>
+          <select id="filter-camp" onchange="loadData()" style="font-size:0.8rem;padding:6px 10px;"><option value="">Todas las campañas</option></select>
+          <select id="filter-emp" onchange="loadData()" style="font-size:0.8rem;padding:6px 10px;"><option value="">Todos los empleados</option></select>
+          <select id="filter-estado" onchange="loadData()" style="font-size:0.8rem;padding:6px 10px;">
             <option value="">Todos los estados</option>
-            <option value="activa">Activa</option>
-            <option value="inactiva">Inactiva</option>
+            <option value="activo">Activo</option>
+            <option value="activo_parcial">Activo parcial</option>
+            <option value="en_curso">En curso</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>
       </div>
       <table>
-        <thead>
-          <tr><th>Empleado</th><th>Cliente</th><th>Tarifa</th><th>Monto</th><th>Mes</th><th>Estado</th><th>Notas</th><th>Acción</th></tr>
-        </thead>
-        <tbody id="admin-table-body">
-          <tr><td colspan="8" class="empty">Cargando datos...</td></tr>
-        </tbody>
+        <thead><tr><th>Empleado</th><th>Cliente</th><th>DNI</th><th>Campaña</th><th>Tarifa</th><th>Gan.Dist</th><th>Mes</th><th>Estado</th><th>Cambiar estado</th><th>Acción</th></tr></thead>
+        <tbody id="admin-table-body"><tr><td colspan="10" class="empty">Cargando...</td></tr></tbody>
       </table>
     </div>
-
   </div>
 
   <div class="toast" id="toast"></div>
