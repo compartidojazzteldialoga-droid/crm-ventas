@@ -513,6 +513,7 @@ async function saveTarifa(id) {
   await saveTarifas(tarifas);
   showToast('Tarifa actualizada');
   await loadTarifas();
+  renderTarifasTable();
 }
 
 async function deleteTarifa(id) {
@@ -520,8 +521,8 @@ async function deleteTarifa(id) {
   const tarifas = (await getTarifas()).filter(t => t.id !== id);
   await saveTarifas(tarifas);
   showToast('Tarifa eliminada');
-  renderSidebarTarifas();
   await loadTarifas();
+  renderTarifasTable();
 }
 
 async function addTarifa() {
@@ -534,8 +535,8 @@ async function addTarifa() {
   document.getElementById('new-tarifa-nombre').value = '';
   document.getElementById('new-tarifa-monto').value = '';
   showToast('Tarifa agregada');
-  renderSidebarTarifas();
   await loadTarifas();
+  renderTarifasTable();
 }
 
 // ============================================================
@@ -597,3 +598,26 @@ async function sidebarEditUser(id) {
   showToast('Usuario actualizado');
   renderSidebarUsers();
 }
+
+// ============================================================
+// TARIFAS TABLE (tarifas.html)
+// ============================================================
+async function renderTarifasTable() {
+  const tbody = document.getElementById('tarifas-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="3" class="empty">Cargando...</td></tr>';
+  const tarifas = await getTarifas();
+  if (!tarifas.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty">Sin tarifas</td></tr>'; return; }
+  tbody.innerHTML = tarifas.map(t => `
+    <tr id="trow-${t.id}">
+      <td><input type="text" value="${t.nombre}" id="tname-${t.id}" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:100%;outline:none;" /></td>
+      <td><div style="display:flex;align-items:center;gap:6px;"><input type="number" value="${t.monto}" id="tmonto-${t.id}" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:80px;outline:none;" /> <span style="color:var(--text-muted);">€</span></div></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-primary" style="font-size:0.72rem;padding:4px 12px;" onclick="saveTarifa('${t.id}')">Guardar</button>
+        <button class="btn btn-danger" style="font-size:0.72rem;padding:4px 12px;" onclick="deleteTarifa('${t.id}')">Eliminar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Override deleteTarifa to also refresh table — handled inline above
