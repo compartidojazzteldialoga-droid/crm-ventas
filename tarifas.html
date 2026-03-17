@@ -14,15 +14,14 @@
       <span class="logo">CRICRI CORP</span>
       <div class="header-right">
         <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Modo claro</button>
-        <a href="admin.html" class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;">← Volver</a>
+        <a href="campanas.html" class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;">← Campañas</a>
         <span class="badge adm">ADM</span>
         <button class="btn btn-outline" style="font-size:0.75rem;padding:6px 14px;" onclick="doLogout()">Salir</button>
       </div>
     </div>
   </header>
-
   <div class="container">
-
+    <p class="section-title" id="camp-title">Tarifas</p>
     <div class="form-card">
       <h2>Nueva tarifa</h2>
       <div class="form-grid">
@@ -31,29 +30,26 @@
           <input type="text" id="new-tarifa-nombre" placeholder="Ej: Tarifa C" />
         </div>
         <div class="form-group">
-          <label for="new-tarifa-monto">Monto (€)</label>
-          <input type="number" id="new-tarifa-monto" placeholder="Ej: 200" />
+          <label for="new-tarifa-dist">Ganancia distribuidor (€)</label>
+          <input type="number" id="new-tarifa-dist" placeholder="Ej: 60" />
+        </div>
+        <div class="form-group">
+          <label for="new-tarifa-colab">Ganancia colaborador (€)</label>
+          <input type="number" id="new-tarifa-colab" placeholder="Ej: 40" />
         </div>
       </div>
       <div class="actions-row">
         <button class="btn btn-primary" onclick="addTarifa()">Agregar tarifa</button>
       </div>
     </div>
-
     <div class="table-wrap">
-      <div class="table-header"><h2>Tarifas activas</h2></div>
+      <div class="table-header"><h2>Tarifas de esta campaña</h2></div>
       <table>
-        <thead>
-          <tr><th>Nombre</th><th>Monto</th><th>Acciones</th></tr>
-        </thead>
-        <tbody id="tarifas-table-body">
-          <tr><td colspan="3" class="empty">Cargando...</td></tr>
-        </tbody>
+        <thead><tr><th>Nombre</th><th>Gan. Distribuidor</th><th>Gan. Colaborador</th><th>Acciones</th></tr></thead>
+        <tbody id="tarifas-table-body"><tr><td colspan="4" class="empty">Cargando...</td></tr></tbody>
       </table>
     </div>
-
   </div>
-
   <div class="toast" id="toast"></div>
   <script src="app.js"></script>
   <script>
