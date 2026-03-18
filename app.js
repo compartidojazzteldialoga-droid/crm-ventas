@@ -595,22 +595,26 @@ function renderAdminTable(sales) {
     (!fm||s.mes===fm) && (!fe||s.empName===fe) && (!fs||s.estado===fs) && (!fc||s.campanaId===fc)
   );
   const tbody = document.getElementById('admin-table-body');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay ventas que coincidan</td></tr>'; return; }
-  tbody.innerHTML = filtered.map(s => `
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay ventas que coincidan</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(s => {
+    const estadoKey = s.estado === 'activa' ? 'activo' : s.estado === 'inactiva' ? 'cancelado' : s.estado;
+    const estadoLabel = ESTADO_LABELS[estadoKey] || estadoKey;
+    const estadoClass = ESTADO_CLASS[estadoKey] || 'en_curso';
+    return `
     <tr>
-      <td>${s.empName}</td><td>${s.client}</td><td>${s.dni||'—'}</td>
-      <td>${s.campanaNombre||'—'}</td><td>${s.tarifaNombre||'—'}</td>
+      <td><div style="font-size:0.88rem;">${s.empName}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.client}${s.dni ? ' · ' + s.dni : ''}</div></td>
+      <td><div>${s.campanaNombre||'—'}</div><div style="font-size:0.78rem;color:var(--text-muted);">${s.tarifaNombre||'—'}</div></td>
       <td>${s.gananciaDistribuidor||0} €</td>
       <td>${formatMes(s.mes)}</td>
-      <td><span class="pill ${ESTADO_CLASS[s.estado]||'en_curso'}">${ESTADO_LABELS[s.estado]||s.estado}</span></td>
+      <td><span class="pill ${estadoClass}">${estadoLabel}</span></td>
       <td>
-        <select onchange="setStatus('${s.id}',this.value,'admin')" style="font-size:0.78rem;padding:4px 8px;">
-          ${ESTADOS.map(e=>`<option value="${e}" ${s.estado===e?'selected':''}>${ESTADO_LABELS[e]}</option>`).join('')}
+        <select onchange="setStatus('${s.id}',this.value,'admin')" style="font-size:0.78rem;padding:4px 8px;max-width:130px;">
+          ${ESTADOS.map(e=>`<option value="${e}" ${estadoKey===e?'selected':''}>${ESTADO_LABELS[e]}</option>`).join('')}
         </select>
       </td>
       <td><button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteSale('${s.id}')">Eliminar</button></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ============================================================
