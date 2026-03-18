@@ -29,7 +29,11 @@
         <div class="form-group"><label for="new-user">Usuario</label><input type="text" id="new-user" placeholder="Ej: juangarcia" /></div>
         <div class="form-group"><label for="new-pass">Contraseña</label><input type="password" id="new-pass" placeholder="••••••••" /></div>
         <div class="form-group"><label for="new-role">Rol</label>
-          <select id="new-role"><option value="employee">Empleado</option><option value="admin">Administrador</option></select>
+          <select id="new-role">
+            <option value="employee">Colaborador</option>
+            <option value="admin">Administrador</option>
+            ${isSuperAdmin ? '<option value="superadmin">Super Admin</option>' : ''}
+          </select>
         </div>
       </div>
       <div class="actions-row"><button class="btn btn-primary" onclick="createUser()">Crear usuario</button></div>
@@ -52,9 +56,12 @@
       <div class="form-group" style="margin-bottom:14px;"><label>Nombre completo</label><input type="text" id="edit-user-name" /></div>
       <div class="form-group" style="margin-bottom:14px;"><label>Usuario</label><input type="text" id="edit-user-user" /></div>
       <div class="form-group" style="margin-bottom:14px;"><label>Contraseña</label><input type="password" id="edit-user-pass" /></div>
-      <div class="form-group" style="margin-bottom:20px;"><label>Rol</label>
-        <select id="edit-user-role"><option value="employee">Empleado</option><option value="admin">Administrador</option></select>
-      </div>
+        <div class="form-group" style="margin-bottom:20px;"><label>Rol</label>
+        <select id="edit-user-role">
+          <option value="employee">Colaborador</option>
+          <option value="admin">Administrador</option>
+          <option value="superadmin">Super Admin</option>
+        </select>
       <div class="actions-row">
         <button class="btn btn-primary" onclick="saveEditUser()">Guardar</button>
         <button class="btn btn-outline" onclick="closeEditUser()">Cancelar</button>
