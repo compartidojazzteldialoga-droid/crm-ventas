@@ -51,14 +51,22 @@ function doLogout() { sessionStorage.removeItem('crm_session'); window.location.
 function requireAuth(role) {
   const s = getSession();
   if (!s) { window.location.href = 'index.html'; return; }
-  if (role === 'admin' && s.role !== 'admin') window.location.href = 'employee.html';
-  if (role === 'employee' && s.role === 'admin') window.location.href = 'admin.html';
+  if (role === 'superadmin' && s.role !== 'superadmin') window.location.href = 'admin.html';
+  if (role === 'admin' && s.role === 'employee') window.location.href = 'employee.html';
+  if (role === 'employee' && (s.role === 'admin' || s.role === 'superadmin')) window.location.href = 'admin.html';
 }
+
+function isSuperAdmin() { const s = getSession(); return s?.role === 'superadmin'; }
+function isAdmin()      { const s = getSession(); return s?.role === 'admin' || s?.role === 'superadmin'; }
 
 function hasPerm(perm) {
   const s = getSession();
   if (!s) return false;
-  if (s.role === 'admin') return true;
+  if (s.role === 'superadmin') return true;
+  if (s.role === 'admin') {
+    if (perm === 'gestionar_permisos') return (s.perms || []).includes('gestionar_permisos');
+    return true;
+  }
   return (s.perms || []).includes(perm);
 }
 
@@ -76,7 +84,8 @@ async function doLogin() {
     const user  = users.find(u => u.username === username && u.password === password);
     if (!user) { errEl.style.display = 'block'; errEl.textContent = 'Usuario o contraseña incorrectos'; btn.textContent = 'Entrar'; btn.disabled = false; return; }
     setSession({ username: user.username, name: user.name, role: user.role, perms: user.perms || [] });
-    window.location.href = user.role === 'admin' ? 'admin.html' : 'employee.html';
+    const dest = (user.role === 'superadmin' || user.role === 'admin') ? 'admin.html' : 'employee.html';
+    window.location.href = dest;
   } catch (e) {
     errEl.style.display = 'block'; errEl.textContent = 'Error de conexión, intentá de nuevo';
     btn.textContent = 'Entrar'; btn.disabled = false;
@@ -117,16 +126,20 @@ async function renderUsersTable() {
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" class="empty">Cargando...</td></tr>';
-  const users = await getUsers();
+  const allUsers = await getUsers();
+  const session  = getSession();
+  // superadmin sees all, admin sees only employees
+  const users = isSuperAdmin() ? allUsers : allUsers.filter(u => u.role === 'employee');
   if (!users.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin usuarios</td></tr>'; return; }
   tbody.innerHTML = users.map(u => `
     <tr>
       <td>${u.name}</td>
       <td>${u.username}</td>
-      <td><span class="pill ${u.role === 'admin' ? 'activo' : 'en_curso'}">${u.role}</span></td>
+      <td><span class="pill ${u.role === 'superadmin' ? 'activo' : u.role === 'admin' ? 'en_curso' : 'parcial'}">${u.role === 'superadmin' ? 'Super Admin' : u.role === 'admin' ? 'Administrador' : 'Colaborador'}</span></td>
       <td>
-        <button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="openEditUser('${u.id}')">Editar</button>
-        ${u.id !== 'admin-default' ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">Eliminar</button>` : ''}
+        ${u.id !== 'superadmin-default' ? `<button class="btn btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="openEditUser('${u.id}')">Editar</button>` : ''}
+        ${(isSuperAdmin() && u.id !== 'superadmin-default') ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">Eliminar</button>` : ''}
+        ${(!isSuperAdmin() && u.id !== 'admin-default') ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteUser('${u.id}')">Eliminar</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -169,48 +182,82 @@ async function saveEditUser() {
 // PERMISOS
 // ============================================================
 const ALL_PERMS = [
-  { id: 'ver_precios',    label: 'Ver precio de tarifas' },
-  { id: 'editar_estado',  label: 'Editar estado de ventas' },
-  { id: 'editar_venta',   label: 'Editar información de venta' },
-  { id: 'eliminar_venta', label: 'Eliminar ventas' },
+  { id: 'ver_precios',       label: 'Ver precio de tarifas' },
+  { id: 'editar_estado',     label: 'Editar estado de ventas' },
+  { id: 'editar_venta',      label: 'Editar información de venta' },
+  { id: 'eliminar_venta',    label: 'Eliminar ventas' },
+  { id: 'gestionar_permisos',label: 'Gestionar permisos de colaboradores' },
 ];
 
 async function renderPermisosTable() {
   const tbody = document.getElementById('permisos-table-body');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" class="empty">Cargando...</td></tr>';
-  const users = (await getUsers()).filter(u => u.role === 'employee');
-  if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin empleados</td></tr>'; return; }
+  const allUsers = await getUsers();
 
-  const headers = ALL_PERMS.map(p => `<th>${p.label}</th>`).join('');
-  document.getElementById('permisos-thead').innerHTML =
-    `<tr><th>Empleado</th>${headers}<th>Guardar</th></tr>`;
+  // superadmin can assign 'gestionar_permisos' to admins
+  // admin (with gestionar_permisos) can assign perms to employees only
+  const empPerms  = ALL_PERMS.filter(p => p.id !== 'gestionar_permisos');
+  const adminPerms = ALL_PERMS.filter(p => p.id === 'gestionar_permisos');
 
-  tbody.innerHTML = users.map(u => {
-    const perms = u.perms || [];
-    const checks = ALL_PERMS.map(p => `
-      <td style="text-align:center;">
-        <input type="checkbox" id="perm-${u.id}-${p.id}" ${perms.includes(p.id) ? 'checked' : ''} />
-      </td>
-    `).join('');
-    return `<tr><td>${u.name}</td>${checks}<td>
-      <button class="btn btn-primary" style="font-size:0.72rem;padding:4px 12px;" onclick="savePerms('${u.id}')">Guardar</button>
-    </td></tr>`;
-  }).join('');
+  const employees = allUsers.filter(u => u.role === 'employee');
+  const admins    = allUsers.filter(u => u.role === 'admin');
+
+  let html = '';
+
+  // Admins section (only superadmin sees this)
+  if (isSuperAdmin() && admins.length) {
+    html += `<tr><td colspan="3" style="padding:12px 24px;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);background:var(--surface2);">Administradores</td></tr>`;
+    html += admins.map(u => {
+      const perms = u.perms || [];
+      return `<tr>
+        <td>${u.name}</td>
+        <td style="text-align:center;">
+          <input type="checkbox" id="perm-${u.id}-gestionar_permisos" ${perms.includes('gestionar_permisos') ? 'checked' : ''} />
+          <label for="perm-${u.id}-gestionar_permisos" style="font-size:0.82rem;margin-left:6px;">Gestionar permisos de colaboradores</label>
+        </td>
+        <td><button class="btn btn-primary" style="font-size:0.72rem;padding:4px 12px;" onclick="savePerms('${u.id}')">Guardar</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Employees section
+  if (employees.length) {
+    const canManage = isSuperAdmin() || hasPerm('gestionar_permisos');
+    if (!canManage) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin permisos para gestionar colaboradores</td></tr>'; return; }
+
+    const headers = empPerms.map(p => `<th>${p.label}</th>`).join('');
+    document.getElementById('permisos-thead').innerHTML =
+      `<tr><th>Colaborador</th>${headers}<th>Guardar</th></tr>`;
+
+    html += employees.map(u => {
+      const perms = u.perms || [];
+      const checks = empPerms.map(p => `
+        <td style="text-align:center;">
+          <input type="checkbox" id="perm-${u.id}-${p.id}" ${perms.includes(p.id) ? 'checked' : ''} />
+        </td>
+      `).join('');
+      return `<tr><td>${u.name}</td>${checks}<td>
+        <button class="btn btn-primary" style="font-size:0.72rem;padding:4px 12px;" onclick="savePerms('${u.id}')">Guardar</button>
+      </td></tr>`;
+    }).join('');
+  }
+
+  if (!html) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin usuarios para gestionar</td></tr>'; return; }
+  tbody.innerHTML = html;
 }
 
 async function savePerms(userId) {
   const users = await getUsers();
   const idx = users.findIndex(u => u.id === userId);
   if (idx === -1) return;
-  const perms = ALL_PERMS.filter(p => document.getElementById(`perm-${userId}-${p.id}`)?.checked).map(p => p.id);
+  const isEmp = users[idx].role === 'employee';
+  const permList = isEmp ? ALL_PERMS.filter(p => p.id !== 'gestionar_permisos') : ALL_PERMS.filter(p => p.id === 'gestionar_permisos');
+  const perms = permList.filter(p => document.getElementById(`perm-${userId}-${p.id}`)?.checked).map(p => p.id);
   users[idx].perms = perms;
   await saveUsers(users);
-  // Update session if it's the current user
   const session = getSession();
-  if (session && session.username === users[idx].username) {
-    setSession({ ...session, perms });
-  }
+  if (session && session.username === users[idx].username) setSession({ ...session, perms });
   showToast('Permisos guardados');
 }
 
