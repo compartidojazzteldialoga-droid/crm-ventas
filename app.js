@@ -466,7 +466,8 @@ async function submitSale() {
   document.getElementById('estado').value  = 'activo';
   status.textContent = '';
   showToast('Venta registrada');
-  await initEmployee();
+  const s = getSession();
+  if (s.role === 'employee') await initEmployee(); else await loadData();
 }
 
 async function toggleStatus(id, current, mode) {
@@ -534,6 +535,8 @@ function renderEmployeeTable(sales) {
 // ADMIN
 // ============================================================
 async function initAdmin() {
+  document.getElementById('mes').value = new Date().toISOString().slice(0, 7);
+  await populateCampanaSelect();
   await loadData();
   setInterval(loadData, 30000);
 }
