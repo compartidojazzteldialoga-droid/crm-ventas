@@ -344,6 +344,7 @@ async function renderTarifasTable() {
       <td><input type="text" value="${t.nombre}" id="tname-${t.id}" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:100%;outline:none;" /></td>
       <td><div style="display:flex;align-items:center;gap:6px;"><input type="number" value="${t.gananciaDistribuidor}" id="tdist-${t.id}" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:80px;outline:none;" /><span style="color:var(--text-muted);">€</span></div></td>
       <td><div style="display:flex;align-items:center;gap:6px;"><input type="number" value="${t.gananciaColaborador}" id="tcolab-${t.id}" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:80px;outline:none;" /><span style="color:var(--text-muted);">€</span></div></td>
+      <td><input type="text" value="${t.velocidad||''}" id="tvel-${t.id}" placeholder="Ej: 500 Mb" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:4px 0;width:100%;outline:none;" /></td>
       <td style="display:flex;gap:6px;">
         <button class="btn btn-primary" style="font-size:0.72rem;padding:4px 12px;" onclick="saveTarifa('${campId}','${t.id}')">Guardar</button>
         <button class="btn btn-danger" style="font-size:0.72rem;padding:4px 12px;" onclick="deleteTarifa('${campId}','${t.id}')">Eliminar</button>
@@ -356,13 +357,14 @@ async function saveTarifa(campId, tarifaId) {
   const nombre = document.getElementById(`tname-${tarifaId}`).value.trim();
   const dist   = parseFloat(document.getElementById(`tdist-${tarifaId}`).value);
   const colab  = parseFloat(document.getElementById(`tcolab-${tarifaId}`).value);
+  const vel    = document.getElementById(`tvel-${tarifaId}`).value.trim();
   if (!nombre || isNaN(dist) || isNaN(colab)) { showToast('Datos inválidos', 'error'); return; }
   const campanas = await getCampanas();
   const cIdx = campanas.findIndex(c => c.id === campId);
   if (cIdx === -1) return;
   const tIdx = campanas[cIdx].tarifas.findIndex(t => t.id === tarifaId);
   if (tIdx === -1) return;
-  campanas[cIdx].tarifas[tIdx] = { ...campanas[cIdx].tarifas[tIdx], nombre, gananciaDistribuidor: dist, gananciaColaborador: colab };
+  campanas[cIdx].tarifas[tIdx] = { ...campanas[cIdx].tarifas[tIdx], nombre, gananciaDistribuidor: dist, gananciaColaborador: colab, velocidad: vel };
   await saveCampanas(campanas);
   showToast('Tarifa actualizada');
 }
@@ -384,15 +386,17 @@ async function addTarifa() {
   const nombre = document.getElementById('new-tarifa-nombre').value.trim();
   const dist   = parseFloat(document.getElementById('new-tarifa-dist').value);
   const colab  = parseFloat(document.getElementById('new-tarifa-colab').value);
+  const vel    = document.getElementById('new-tarifa-vel').value.trim();
   if (!nombre || isNaN(dist) || isNaN(colab)) { showToast('Completá todos los campos', 'error'); return; }
   const campanas = await getCampanas();
   const cIdx = campanas.findIndex(c => c.id === campId);
   if (cIdx === -1) return;
-  campanas[cIdx].tarifas.push({ id: Date.now().toString(), nombre, gananciaDistribuidor: dist, gananciaColaborador: colab });
+  campanas[cIdx].tarifas.push({ id: Date.now().toString(), nombre, gananciaDistribuidor: dist, gananciaColaborador: colab, velocidad: vel });
   await saveCampanas(campanas);
   document.getElementById('new-tarifa-nombre').value = '';
   document.getElementById('new-tarifa-dist').value   = '';
   document.getElementById('new-tarifa-colab').value  = '';
+  document.getElementById('new-tarifa-vel').value    = '';
   showToast('Tarifa agregada');
   renderTarifasTable();
 }
@@ -420,10 +424,14 @@ async function onCampanaChange() {
   if (!campId) { sel.innerHTML = '<option value="">— Primero seleccioná campaña —</option>'; return; }
   const result = await getTarifasByCamp(campId);
   if (!result) return;
-  const session = getSession();
   const showPrice = hasPerm('ver_precios');
   sel.innerHTML = '<option value="">— Seleccionar tarifa —</option>' +
-    result.tarifas.map(t => `<option value="${t.id}">${t.nombre}${showPrice ? ` — Dist: ${t.gananciaDistribuidor}€ / Colab: ${t.gananciaColaborador}€` : ''}</option>`).join('');
+    result.tarifas.map(t => `<option value="${t.id}" data-vel="${t.velocidad||''}">${t.nombre}${showPrice ? ` — Dist: ${t.gananciaDistribuidor}€ / Colab: ${t.gananciaColaborador}€` : ''}</option>`).join('');
+  sel.onchange = () => {
+    const opt = sel.options[sel.selectedIndex];
+    const velEl = document.getElementById('velocidad-display');
+    if (velEl) velEl.textContent = opt?.dataset.vel || '—';
+  };
 }
 
 async function submitSale() {
@@ -450,9 +458,13 @@ async function submitSale() {
     empName: session.name, empUsername: session.username,
     campanaId: campId, campanaNombre: campana.nombre,
     tarifaId, tarifaNombre: tarifa.nombre,
+    velocidad: tarifa.velocidad || '',
     gananciaDistribuidor: tarifa.gananciaDistribuidor,
     gananciaColaborador: tarifa.gananciaColaborador,
-    client, dni, numeros, mes, estado, notas,
+    client, dni, numeros, mes,
+    estado: isAdmin() ? 'en_curso' : 'en_curso',
+    numeroFijo: '',
+    notas,
     createdAt: new Date().toISOString(),
   };
 
@@ -510,25 +522,21 @@ function renderEmployeeTable(sales) {
   const filterMes = document.getElementById('filter-mes-emp')?.value || '';
   const filtered  = (sales || []).filter(s => !filterMes || s.mes === filterMes);
   const tbody     = document.getElementById('emp-table-body');
-  const canEdit   = hasPerm('editar_estado');
-  const canDel    = hasPerm('eliminar_venta');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay ventas registradas aún</td></tr>'; return; }
-  tbody.innerHTML = filtered.map(s => `
-    <tr>
-      <td>${s.client}</td>
-      <td>${s.dni||'—'}</td>
-      <td>${s.campanaNombre||'—'}</td>
-      <td>${s.tarifaNombre||'—'}</td>
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay ventas registradas aún</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(s => {
+    const estadoKey = s.estado === 'activa' ? 'activo' : s.estado === 'inactiva' ? 'cancelado' : s.estado;
+    const numeros = (s.numeros||'').split(',').map(n=>n.trim()).filter(Boolean);
+    return `
+    <tr style="cursor:pointer;" ondblclick="openSaleDetail('${s.id}')">
+      <td>${s.client}<br><span style="font-size:0.75rem;color:var(--text-muted);">${s.dni||'—'}</span></td>
+      <td>${s.campanaNombre||'—'}<br><span style="font-size:0.75rem;color:var(--text-muted);">${s.tarifaNombre||'—'}</span></td>
       <td>${formatMes(s.mes)}</td>
-      <td><span class="pill ${ESTADO_CLASS[s.estado]||'en_curso'}">${ESTADO_LABELS[s.estado]||s.estado}</span></td>
-      <td>
-        ${canEdit ? `<select onchange="setStatus('${s.id}',this.value,'emp')" style="font-size:0.78rem;padding:4px 8px;">
-          ${ESTADOS.map(e=>`<option value="${e}" ${s.estado===e?'selected':''}>${ESTADO_LABELS[e]}</option>`).join('')}
-        </select>` : '—'}
-      </td>
-      <td>${canDel ? `<button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteSale('${s.id}')">Eliminar</button>` : '—'}</td>
-    </tr>
-  `).join('');
+      <td><span class="pill ${ESTADO_CLASS[estadoKey]||'en_curso'}">${ESTADO_LABELS[estadoKey]||estadoKey}</span></td>
+      <td>${s.velocidad||'—'}</td>
+      <td>${s.numeroFijo||'—'}</td>
+      <td>${numeros.length ? numeros.map(n=>`<div>${n}</div>`).join('') : '—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ============================================================
@@ -598,24 +606,26 @@ function renderAdminTable(sales) {
     (!fm||s.mes===fm) && (!fe||s.empName===fe) && (!fs||s.estado===fs) && (!fc||s.campanaId===fc)
   );
   const tbody = document.getElementById('admin-table-body');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay ventas que coincidan</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay ventas que coincidan</td></tr>'; return; }
   tbody.innerHTML = filtered.map(s => {
     const estadoKey = s.estado === 'activa' ? 'activo' : s.estado === 'inactiva' ? 'cancelado' : s.estado;
-    const estadoLabel = ESTADO_LABELS[estadoKey] || estadoKey;
-    const estadoClass = ESTADO_CLASS[estadoKey] || 'en_curso';
+    const numeros = (s.numeros||'').split(',').map(n=>n.trim()).filter(Boolean);
     return `
-    <tr>
-      <td><div style="font-size:0.88rem;">${s.empName}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.client}${s.dni ? ' · ' + s.dni : ''}</div></td>
-      <td><div>${s.campanaNombre||'—'}</div><div style="font-size:0.78rem;color:var(--text-muted);">${s.tarifaNombre||'—'}</div></td>
+    <tr style="cursor:pointer;" ondblclick="openSaleEdit('${s.id}')">
+      <td><div>${s.empName}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.client} · ${s.dni||'—'}</div></td>
+      <td><div>${s.campanaNombre||'—'}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.tarifaNombre||'—'}</div></td>
       <td>${s.gananciaDistribuidor||0} €</td>
       <td>${formatMes(s.mes)}</td>
-      <td><span class="pill ${estadoClass}">${estadoLabel}</span></td>
-      <td>
+      <td><span class="pill ${ESTADO_CLASS[estadoKey]||'en_curso'}">${ESTADO_LABELS[estadoKey]||estadoKey}</span></td>
+      <td>${s.velocidad||'—'}</td>
+      <td>${s.numeroFijo||'—'}</td>
+      <td>${numeros.length ? numeros.map(n=>`<div>${n}</div>`).join('') : '—'}</td>
+      <td style="display:flex;gap:6px;" onclick="event.stopPropagation()">
         <select onchange="setStatus('${s.id}',this.value,'admin')" style="font-size:0.78rem;padding:4px 8px;max-width:130px;">
           ${ESTADOS.map(e=>`<option value="${e}" ${estadoKey===e?'selected':''}>${ESTADO_LABELS[e]}</option>`).join('')}
         </select>
+        <button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteSale('${s.id}')">Eliminar</button>
       </td>
-      <td><button class="btn btn-danger" style="font-size:0.72rem;padding:4px 10px;" onclick="deleteSale('${s.id}')">Eliminar</button></td>
     </tr>`;
   }).join('');
 }
@@ -701,4 +711,79 @@ function showToast(msg, type = 'success') {
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+// ============================================================
+// SALE DETAIL MODAL (colaborador — solo lectura)
+// ============================================================
+async function openSaleDetail(id) {
+  const sales = await getSales();
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  const estadoKey = s.estado === 'activa' ? 'activo' : s.estado === 'inactiva' ? 'cancelado' : s.estado;
+  const numeros = (s.numeros||'').split(',').map(n=>n.trim()).filter(Boolean);
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><span class="detail-label">Cliente</span><span>${s.client}</span></div>
+      <div class="detail-item"><span class="detail-label">DNI</span><span>${s.dni||'—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Campaña</span><span>${s.campanaNombre||'—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Tarifa</span><span>${s.tarifaNombre||'—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Velocidad fibra</span><span>${s.velocidad||'—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Número fijo</span><span>${s.numeroFijo||'—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Números móviles</span><span>${numeros.length ? numeros.join(', ') : '—'}</span></div>
+      <div class="detail-item"><span class="detail-label">Mes</span><span>${formatMes(s.mes)}</span></div>
+      <div class="detail-item"><span class="detail-label">Estado</span><span class="pill ${ESTADO_CLASS[estadoKey]||'en_curso'}">${ESTADO_LABELS[estadoKey]||estadoKey}</span></div>
+      <div class="detail-item full"><span class="detail-label">Notas</span><span>${s.notas||'—'}</span></div>
+    </div>
+  `;
+  document.getElementById('sale-detail-modal').classList.add('open');
+}
+
+function closeSaleDetail() {
+  document.getElementById('sale-detail-modal')?.classList.remove('open');
+}
+
+// ============================================================
+// SALE EDIT MODAL (admin)
+// ============================================================
+async function openSaleEdit(id) {
+  const sales = await getSales();
+  const s = sales.find(x => x.id === id);
+  if (!s) return;
+  const estadoKey = s.estado === 'activa' ? 'activo' : s.estado === 'inactiva' ? 'cancelado' : s.estado;
+
+  document.getElementById('edit-sale-id').value          = s.id;
+  document.getElementById('edit-sale-client').value      = s.client || '';
+  document.getElementById('edit-sale-dni').value         = s.dni || '';
+  document.getElementById('edit-sale-numeros').value     = s.numeros || '';
+  document.getElementById('edit-sale-numero-fijo').value = s.numeroFijo || '';
+  document.getElementById('edit-sale-mes').value         = s.mes || '';
+  document.getElementById('edit-sale-notas').value       = s.notas || '';
+  document.getElementById('edit-sale-estado').value      = estadoKey;
+
+  document.getElementById('sale-edit-modal').classList.add('open');
+}
+
+function closeSaleEdit() {
+  document.getElementById('sale-edit-modal')?.classList.remove('open');
+}
+
+async function saveSaleEdit() {
+  const id         = document.getElementById('edit-sale-id').value;
+  const client     = document.getElementById('edit-sale-client').value.trim();
+  const dni        = document.getElementById('edit-sale-dni').value.trim();
+  const numeros    = document.getElementById('edit-sale-numeros').value.trim();
+  const numeroFijo = document.getElementById('edit-sale-numero-fijo').value.trim();
+  const mes        = document.getElementById('edit-sale-mes').value;
+  const notas      = document.getElementById('edit-sale-notas').value.trim();
+  const estado     = document.getElementById('edit-sale-estado').value;
+
+  const sales = await getSales();
+  const idx = sales.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  sales[idx] = { ...sales[idx], client, dni, numeros, numeroFijo, mes, notas, estado };
+  await saveSales(sales);
+  closeSaleEdit();
+  showToast('Venta actualizada');
+  await loadData();
 }
