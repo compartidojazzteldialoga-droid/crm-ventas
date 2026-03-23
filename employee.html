@@ -78,9 +78,31 @@
         <select id="filter-mes-emp" style="font-size:0.8rem;padding:6px 10px;"><option value="">Todos los meses</option></select>
       </div>
       <table>
-        <thead><tr><th>Cliente</th><th>DNI</th><th>Campaña</th><th>Tarifa</th><th>Mes</th><th>Estado</th><th>Cambiar estado</th><th>Acción</th></tr></thead>
-        <tbody id="emp-table-body"><tr><td colspan="8" class="empty">Sin ventas registradas</td></tr></tbody>
+        <thead><tr><th>Cliente / DNI</th><th>Campaña / Tarifa</th><th>Mes</th><th>Estado</th><th>Velocidad</th><th>Nº Fijo</th><th>Números móviles</th></tr></thead>
+        <tbody id="emp-table-body"><tr><td colspan="7" class="empty">Sin ventas registradas</td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL -->
+  <div class="modal-overlay" id="sale-detail-modal" onclick="closeSaleDetail()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <h2>Detalle de venta</h2>
+      <div id="detail-content"></div>
+      <div class="actions-row" style="margin-top:20px;">
+        <button class="btn btn-outline" onclick="closeSaleDetail()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL -->
+  <div class="modal-overlay" id="sale-detail-modal" onclick="closeSaleDetail()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <h2>Detalle de venta</h2>
+      <div id="detail-content"></div>
+      <div class="actions-row" style="margin-top:20px;">
+        <button class="btn btn-outline" onclick="closeSaleDetail()">Cerrar</button>
+      </div>
     </div>
   </div>
 
