@@ -33,6 +33,7 @@
       <button class="sidebar-close" onclick="closeSidebar()">✕</button>
     </div>
     <nav class="sidebar-nav">
+      <a href="nueva-venta.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">➕</span>Registrar venta</a>
       <a href="users.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">👥</span>Gestión de usuarios</a>
       <a href="permisos.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">🔐</span>Permisos</a>
       <a href="campanas.html" class="sidebar-nav-item"><span class="sidebar-nav-icon">📢</span>Campañas</a>
@@ -43,54 +44,6 @@
   </div>
 
   <div class="container">
-
-    <!-- FORM VENTA -->
-    <div class="form-card">
-      <h2>Registrar venta</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="campana">Campaña</label>
-          <select id="campana" onchange="onCampanaChange()"><option value="">— Seleccionar campaña —</option></select>
-        </div>
-        <div class="form-group">
-          <label for="tarifa">Tarifa</label>
-          <select id="tarifa"><option value="">— Primero seleccioná campaña —</option></select>
-        </div>
-        <div class="form-group">
-          <label for="client-name">Nombre del cliente</label>
-          <input type="text" id="client-name" placeholder="Ej: Empresa S.A." />
-        </div>
-        <div class="form-group">
-          <label for="client-dni">DNI del cliente</label>
-          <input type="text" id="client-dni" placeholder="Ej: 12345678A" />
-        </div>
-        <div class="form-group">
-          <label for="client-numeros">Números a contratar</label>
-          <input type="text" id="client-numeros" placeholder="Ej: 600000001" />
-        </div>
-        <div class="form-group">
-          <label for="mes">Mes</label>
-          <input type="month" id="mes" />
-        </div>
-        <div class="form-group">
-          <label for="estado">Estado</label>
-          <select id="estado">
-            <option value="activo">Activo</option>
-            <option value="activo_parcial">Activo parcial</option>
-            <option value="en_curso">En curso</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="notas">Notas (opcional)</label>
-          <input type="text" id="notas" placeholder="Observaciones..." />
-        </div>
-      </div>
-      <div class="actions-row">
-        <button class="btn btn-primary" onclick="submitSale()">Registrar venta</button>
-        <span id="form-status" style="font-size:0.82rem;color:var(--text-muted);"></span>
-      </div>
-    </div>
     <p class="section-title">Resumen general</p>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Total potencial</div><div class="stat-value" id="stat-potencial">—</div><div class="stat-sub">Si ninguna venta estuviera cancelada</div></div>
@@ -126,9 +79,37 @@
         </div>
       </div>
       <table>
-        <thead><tr><th>Empleado / Cliente</th><th>Campaña / Tarifa</th><th>Gan.Dist</th><th>Mes</th><th>Estado</th><th>Cambiar estado</th><th>Acción</th></tr></thead>
-        <tbody id="admin-table-body"><tr><td colspan="7" class="empty">Cargando...</td></tr></tbody>
+        <thead><tr><th>Empleado / Cliente</th><th>Campaña / Tarifa</th><th>Gan.Dist</th><th>Mes</th><th>Estado</th><th>Velocidad</th><th>Nº Fijo</th><th>Números móviles</th><th>Acciones</th></tr></thead>
+        <tbody id="admin-table-body"><tr><td colspan="9" class="empty">Cargando...</td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- SALE EDIT MODAL -->
+  <div class="modal-overlay" id="sale-edit-modal" onclick="closeSaleEdit()">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
+      <h2>Editar venta</h2>
+      <input type="hidden" id="edit-sale-id" />
+      <div class="form-grid">
+        <div class="form-group"><label>Cliente</label><input type="text" id="edit-sale-client" /></div>
+        <div class="form-group"><label>DNI</label><input type="text" id="edit-sale-dni" /></div>
+        <div class="form-group"><label>Números móviles</label><input type="text" id="edit-sale-numeros" placeholder="Separados por coma" /></div>
+        <div class="form-group"><label>Número fijo</label><input type="text" id="edit-sale-numero-fijo" placeholder="Ej: 912345678" /></div>
+        <div class="form-group"><label>Mes</label><input type="month" id="edit-sale-mes" /></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="edit-sale-estado">
+            <option value="activo">Activo</option>
+            <option value="activo_parcial">Activo parcial</option>
+            <option value="en_curso">En curso</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Notas</label><input type="text" id="edit-sale-notas" /></div>
+      </div>
+      <div class="actions-row" style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="saveSaleEdit()">Guardar cambios</button>
+        <button class="btn btn-outline" onclick="closeSaleEdit()">Cancelar</button>
+      </div>
     </div>
   </div>
 
