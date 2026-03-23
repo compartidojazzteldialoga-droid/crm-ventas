@@ -37,6 +37,10 @@
           <label for="new-tarifa-colab">Ganancia colaborador (€)</label>
           <input type="number" id="new-tarifa-colab" placeholder="Ej: 40" />
         </div>
+        <div class="form-group">
+          <label for="new-tarifa-vel">Velocidad fibra (opcional)</label>
+          <input type="text" id="new-tarifa-vel" placeholder="Ej: 500 Mb" />
+        </div>
       </div>
       <div class="actions-row">
         <button class="btn btn-primary" onclick="addTarifa()">Agregar tarifa</button>
@@ -45,7 +49,7 @@
     <div class="table-wrap">
       <div class="table-header"><h2>Tarifas de esta campaña</h2></div>
       <table>
-        <thead><tr><th>Nombre</th><th>Gan. Distribuidor</th><th>Gan. Colaborador</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Gan. Distribuidor</th><th>Gan. Colaborador</th><th>Velocidad fibra</th><th>Acciones</th></tr></thead>
         <tbody id="tarifas-table-body"><tr><td colspan="4" class="empty">Cargando...</td></tr></tbody>
       </table>
     </div>
